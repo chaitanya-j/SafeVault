@@ -5,9 +5,25 @@
 # I am importing the module aes-256 written by me which has the encrypt and decrypt methods
 import aes_256
 import json
+from getpass import getpass
 
 
-master_password = input("Please enter master password to start programm:")
+master_password = getpass("Please enter master password to start programm:")
+master_password_retake = getpass("Please enter your password again: ")
+
+if master_password == master_password_retake:
+    print("Both password were correct!")
+    print("Some safety information:")
+    print("=================================================================================================")
+    print("")
+    print("NEVER EVER forget your master password your data will remain encrypted forever")
+    print("NO forgot password option is availlable")
+    print("")
+    print("=================================================================================================")
+
+else:
+    print("The passwords do not match please try again!!!")
+    exit()
 
 
 def encrypt_file(str_creds,master_passw):
@@ -55,7 +71,7 @@ print("4) Exit")
 usr_opinion = int(input("1, 2, 3 or 4? : "))
 
 if usr_opinion == 1:
-    usr_key = input("Dear user please enter the key: ")
+    usr_key = getpass("Dear user please enter the key: ")
     app_name = input("Please enter the app name: ")
     usr_name = input("Please enter your usr name: ")
     app_pass = input("Please enter the app login password: ")
@@ -75,7 +91,7 @@ if usr_opinion == 1:
 
 if usr_opinion == 2:
     usr_app = input("Dear user please the the app of which you want the password: ")
-    key = input("Please enter the key by which you encrypted the data: ")
+    key = getpass("Please enter the key by which you encrypted the data: ")
 
     cred_dict = decrypt_file(master_password)
     encrp_passw = cred_dict.get(usr_app)[-1]
@@ -113,7 +129,7 @@ if usr_opinion == 2:
 if usr_opinion == 3:
     app_name = input("Please enter the app name of the password you want to enter: ")
     new_passw = input("Please enter the new password: ")
-    key = input("Please enter the key: ")
+    key = getpass("Please enter the key: ")
 
     
     cred_dict = decrypt_file(master_password)
