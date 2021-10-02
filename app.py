@@ -6,24 +6,32 @@
 import aes_256
 import json
 from getpass import getpass
+import os
+import base64
 
+path = "data"
 
-master_password = getpass("Please enter master password to start programm:")
-master_password_retake = getpass("Please enter your password again: ")
+master_password = getpass("Master password:")
+try:
+    with open("data") as d:
+        d.readline()
+        
+except Exception:
+    master_password_retake = getpass("Please enter your password again: ")
 
-if master_password == master_password_retake:
-    print("Both password were correct!")
-    print("Some safety information:")
-    print("=================================================================================================")
-    print("")
-    print("NEVER EVER forget your master password your data will remain encrypted forever")
-    print("NO forgot password option is availlable")
-    print("")
-    print("=================================================================================================")
+    if master_password == master_password_retake:
+        print("Both password were correct!")
+        print("Some safety information:")
+        print("=================================================================================================")
+        print("")
+        print("NEVER EVER forget your master password your data will remain encrypted forever")
+        print("NO forgot password option is availlable")
+        print("")
+        print("=================================================================================================")
 
-else:
-    print("The passwords do not match please try again!!!")
-    exit()
+    else:
+        print("The passwords do not match please try again!!!")
+        exit()
 
 
 def encrypt_file(str_creds,master_passw):
@@ -35,7 +43,7 @@ def encrypt_file(str_creds,master_passw):
             data.write(conc_file_enc_dict)
         
         except Exception:
-            print("Nothinh in file!")
+            print("Nothings in file!")
 
 def decrypt_file(master_passw):
     with open("data") as d:
@@ -51,7 +59,11 @@ def decrypt_file(master_passw):
         file_data_dict["cipher_text"] = cipher_text
 
     decrypted_file = aes_256.decrypt(file_data_dict,master_passw)
-    return json.loads(decrypted_file)
+    secret_data = json.loads(decrypted_file)
+    
+    # print('>> Decrypted data:', secret_data)
+
+    return secret_data
 
 try:
     decrypt_file(master_password)
@@ -60,7 +72,9 @@ except FileNotFoundError:
     encrypt_file(json.dumps({}),master_password)
 
 except Exception:
-    print("Other error occured")
+    print("Master password incorrect. Please try again")
+    exit()
+
 
 print("Hey User! Pleaase select what you want to do from the menu!")
 print("1) Add a password")
@@ -72,11 +86,26 @@ usr_opinion = int(input("1, 2, 3 or 4? : "))
 
 if usr_opinion == 1:
     usr_key = getpass("Dear user please enter the key: ")
+    if os.stat(path).st_size == 0:
+        confirm_usr_key = getpass("Dear user please enter the key again: ")
+        if usr_key == confirm_usr_key:
+            print("Both passwords are same!")
+        else:
+            print("=========================================================================================================")
+            print("")
+            print("Dear user, the second password you entered was not the same as the first one please try again!!!")
+            print("")
+            print("=========================================================================================================")
+            exit()
+
     app_name = input("Please enter the app name: ")
     usr_name = input("Please enter your usr name: ")
     app_pass = input("Please enter the app login password: ")
 
-    creds = decrypt_file(master_password)
+    try:
+        creds = decrypt_file(master_password)
+    except Exception:
+        creds = {}
     
     encrypted_password = aes_256.encrypt(app_pass,usr_key)
     encr_conc_passw = encrypted_password.get("salt") + encrypted_password.get("nonce") + encrypted_password.get("tag") + encrypted_password.get("cipher_text")
@@ -120,11 +149,16 @@ if usr_opinion == 2:
     encr_data_name["tag"] = tag
     encr_data_name["cipher_text"] = cipher_text
 
+    try:
+        userid = aes_256.decrypt(encr_data_name,key).decode('utf-8')
+        passwd = aes_256.decrypt(encr_data_passw,key).decode('utf-8')
 
+        print(f"Your creds are: {userid}/{passwd}")
+
+    except Exception:
+        print('Incorrect key!!! Please try again')
+        exit()
     
-
-    print(f"{aes_256.decrypt(encr_data_name,key).decode('utf-8')}/{aes_256.decrypt(encr_data_passw,key).decode('utf-8')}")
-
         
 if usr_opinion == 3:
     app_name = input("Please enter the app name of the password you want to enter: ")
