@@ -67,29 +67,40 @@ def chk_complxty_password(password):
         if pass_ch in nos:
             cnt_nums += 1
 
+    flg = True
+
     # Now checking if any flag is still False
     # If its False we print that a type of value is missing 
     if passwd_chars[0] == ' e ':
-        print('Password must not start with a space')
+        print('\tError: Password must not start with a space')
+        flg = False
 
     if chk_len < min_len:
-        print(f'Password must have more than {min_len} characters! Please try again!')
+        print(f'\tError: Password must have at least {min_len} characters!')
+        flg = False
+
 
     if cnt_sl >= min_sls and cnt_cl >= min_cap_l and cnt_spl_chars >= min_spl_chars and cnt_nums >= min_nos:
         if chk_len >= min_len:
-            print('You have set a perfect password')
+            print('\tYou have set a perfect password')
 
     if cnt_sl < min_sls:
-        print(f'Password must have at least {min_sls} Small Alphabet!')
+        print(f'\tError: Password must have at least {min_sls} Small Alphabet!')
+        flg = False
+
 
     if cnt_cl < min_cap_l:
-        print(f'Password must have at least {min_cap_l} Capital Alphabet!')
+        print(f'\tError: Password must have at least {min_cap_l} Capital Alphabet!')
+        flg = False
+
 
     if cnt_spl_chars < min_spl_chars:
-        print(f'Password must have at least {min_spl_chars} Special Character!')
+        print(f'\tError: Password must have at least {min_spl_chars} Special Character!')
+        flg = False
+
 
     if cnt_nums < min_nos:
-        print(f'Password must have at least {min_nos} Numerical Value!')
+        print(f'\tError: Password must have at least {min_nos} Numerical Value!')
+        flg = False
+    return flg
 
-
-chk_complxty_password("bwSDFD^^^!!")

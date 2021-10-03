@@ -6,33 +6,7 @@
 import aes_256
 import json
 from getpass import getpass
-import os
-import base64
-
-path = "data"
-
-master_password = getpass("Master password:")
-try:
-    with open("data") as d:
-        d.readline()
-        
-except Exception:
-    master_password_retake = getpass("Please enter your password again: ")
-
-    if master_password == master_password_retake:
-        print("Both password were correct!")
-        print("Some safety information:")
-        print("=================================================================================================")
-        print("")
-        print("NEVER EVER forget your master password your data will remain encrypted forever")
-        print("NO forgot password option is availlable")
-        print("")
-        print("=================================================================================================")
-
-    else:
-        print("The passwords do not match please try again!!!")
-        exit()
-
+import chk_password
 
 def encrypt_file(str_creds,master_passw):
     with open("data","w") as data:
@@ -65,148 +39,225 @@ def decrypt_file(master_passw):
 
     return secret_data
 
+
+# Program logic starts here
+master_password = ""
+usr_key = ""
+flg_file_empty = False
+
+print("")
+print("=================================================================================================")
+print("                               Welcome to Password Manager 1.0")
+print("=================================================================================================")
+print("")
+
 try:
-    decrypt_file(master_password)
+    with open("data") as d:
+        d.readline()
+        
+except Exception:
+    print("")
+    print("Initiating Program Setup...")
+    
+    print("")
+    print("Step-1: Set your master password")
+    print("")
+    master_password = getpass("\tMaster password: ")
+    master_password_retake = getpass("\tEnter master password again: ")
+
+    if master_password == master_password_retake:
+        
+        if_pass_complx = chk_password.chk_complxty_password(master_password)
+        if if_pass_complx == False:
+            print("\tError: Sorry, the password you set was not complex enough! Aborting setup")
+            print("")
+            exit()
+
+        print("\tSuccess: Master password is now set")
+    else:
+        print("\tError: The entered passwords do not match. Aborting setup")
+        print("")
+        exit()
+
+    print("")
+    print("Step-2: Set your encryption key")
+    print("")
+
+    usr_key = getpass("\tEncryption key: ")
+    confirm_usr_key = getpass("\tEnter encryption key again: ")
+
+    if usr_key == confirm_usr_key:
+        if_pass_complx = chk_password.chk_complxty_password(usr_key)
+        if if_pass_complx == False:
+            print("\tError: Sorry, the key you set was not complex enough! Aborting setup")
+            print("")
+            exit()
+        print("\tSuccess: Encryption key set successfully")
+    else:
+        print("\tError: The entered key values do not match. Aborting setup")
+        print("")
+        exit()
+
+    print("")
+    print("Program setup complete. Please note some safety instructions:")
+    print("")
+    print(" - Please keep the master password & the encryption key at a safe location.")
+    print(" - If either of these secrets are lost, your data will remain encrypted forever")
+    print(" - The program does not offer any recovery option for these secrets")
+    print("")
+
+
+try:
+    if master_password == "":
+        master_password = getpass("Enter your master password: ")
+
+    creds_store = decrypt_file(master_password)
+
 except FileNotFoundError:
-    print("File not found")
     encrypt_file(json.dumps({}),master_password)
 
 except Exception:
-    print("Master password incorrect. Please try again")
+    print("Error: Master password incorrect. Please try again")
+    print("")
     exit()
 
+print("")
+print("=================================================================================================")
+print("                                      Application Menu")
+print("=================================================================================================")
+print("")
 
-print("Hey User! Pleaase select what you want to do from the menu!")
-print("1) Add a password")
-print("2) Get a password")
-print("3) Update values")
+print("Please select what you want to do")
+print("1) Add a credential")
+print("2) Get a credential")
+print("3) Update credentials")
 print("4) Exit")
 
-usr_opinion = int(input("1, 2, 3 or 4? : "))
+usr_choice = int(input("1, 2, 3 or 4? : "))
 
-if usr_opinion == 1:
-    usr_key = getpass("Dear user please enter the key: ")
-    if os.stat(path).st_size == 0:
-        confirm_usr_key = getpass("Dear user please enter the key again: ")
-        if usr_key == confirm_usr_key:
-            print("Both passwords are same!")
-        else:
-            print("=========================================================================================================")
+if usr_choice == 1:
+    
+    usr_key = getpass("Enter your encryption key: ")
+
+    print("Preparing to add a credential in the secret store")
+    app_name = input("Which app you need to add credentials for? Enter the name of the app: ")
+    usr_name = input("What is the username? ")
+    app_pass = input("What is the password for the username? ")
+    
+    passwd_encr_data = aes_256.encrypt(app_pass,usr_key)
+    encr_passwd = passwd_encr_data.get("salt") + passwd_encr_data.get("nonce") + passwd_encr_data.get("tag") + passwd_encr_data.get("cipher_text")
+    
+    usrname_encr_data = aes_256.encrypt(usr_name, usr_key)
+    encr_usrname = usrname_encr_data.get("salt") + usrname_encr_data.get("nonce") + usrname_encr_data.get("tag") + usrname_encr_data.get("cipher_text")
+        
+    creds_store[app_name] = [encr_usrname,encr_passwd]
+    str_creds_store = json.dumps(creds_store)
+
+    encrypt_file(str_creds_store,master_password)
+    flg_file_empty = False
+
+
+
+elif usr_choice == 2:
+    print("Retrieve credentials")
+    usr_app = input(f"Please enter the app name {[ key for key in creds_store.keys()]}: ")
+    key = getpass("Enter the encryption key: ")
+
+    app_creds = creds_store.get(usr_app)
+
+    if app_creds == None:
+        print(f"Error: No entry found for app by name '{usr_app}'!")
+    else:
+
+        encr_new_passwd = app_creds[1]
+
+        salt = encr_new_passwd[0:24]
+        nonce = encr_new_passwd[24:48]
+        tag = encr_new_passwd[48:72]
+        cipher_text = encr_new_passwd[72:]
+
+        passwd_encr_data = {}
+
+        passwd_encr_data["salt"] = salt
+        passwd_encr_data["nonce"] = nonce
+        passwd_encr_data["tag"] = tag
+        passwd_encr_data["cipher_text"] = cipher_text
+
+        encr_usrname = app_creds[0]
+        salt = encr_usrname[0:24]
+        nonce = encr_usrname[24:48]
+        tag = encr_usrname[48:72]
+        cipher_text = encr_usrname[72:]
+
+        usrname_encr_data = {}
+
+        usrname_encr_data["salt"] = salt
+        usrname_encr_data["nonce"] = nonce
+        usrname_encr_data["tag"] = tag
+        usrname_encr_data["cipher_text"] = cipher_text
+
+        try:
+            userid = aes_256.decrypt(usrname_encr_data,key).decode('utf-8')
+            passwd = aes_256.decrypt(passwd_encr_data,key).decode('utf-8')
+
+            print(f"Your creds for '{usr_app}' are: {userid}/{passwd}")
+
+        except Exception:
+            print('Error: Failed to decrpt data. Key provided seems to be incorrect. Please try again')
             print("")
-            print("Dear user, the second password you entered was not the same as the first one please try again!!!")
-            print("")
-            print("=========================================================================================================")
+            exit()
+    
+        
+elif usr_choice == 3:
+    print("Updating credentials")
+    app_name = input(f"Please enter the app name {creds_store.keys()}: ")
+    key = getpass("Enter the encryption key: ")
+    new_passw = input("Please enter the new password: ")
+
+    app_creds = creds_store.get(app_name)
+
+    if app_creds == None:
+        print(f"Error: No entry found for app by name '{app_name}'!")
+    else:
+
+        try:
+            prev_passw = app_creds[1]
+            salt = prev_passw[0:24]
+            nonce = prev_passw[24:48]
+            tag = prev_passw[48:72]
+            cipher_text = prev_passw[72:]
+            prev_passw_encr_data = {}
+            prev_passw_encr_data["salt"] = salt
+            prev_passw_encr_data["nonce"] = nonce
+            prev_passw_encr_data["tag"] = tag
+            prev_passw_encr_data["cipher_text"] = cipher_text
+
+            aes_256.decrypt(prev_passw_encr_data,key)
+
+        except Exception:
+            print("Error: Incorrect key!")
             exit()
 
-    app_name = input("Please enter the app name: ")
-    usr_name = input("Please enter your usr name: ")
-    app_pass = input("Please enter the app login password: ")
 
-    try:
-        creds = decrypt_file(master_password)
-    except Exception:
-        creds = {}
-    
-    encrypted_password = aes_256.encrypt(app_pass,usr_key)
-    encr_conc_passw = encrypted_password.get("salt") + encrypted_password.get("nonce") + encrypted_password.get("tag") + encrypted_password.get("cipher_text")
-    encrypted_name = aes_256.encrypt(usr_name, usr_key)
-    encr_conc_name = encrypted_name.get("salt") + encrypted_name.get("nonce") + encrypted_name.get("tag") + encrypted_name.get("cipher_text")
-        
-    creds[app_name] = [encr_conc_name,encr_conc_passw]
-    str_creds = json.dumps(creds)
-    encrypt_file(str_creds,master_password)
+        new_passwd_encr_data = aes_256.encrypt(new_passw,key)
+        encr_new_passwd = new_passwd_encr_data.get("salt") + new_passwd_encr_data.get("nonce") + new_passwd_encr_data.get("tag") + new_passwd_encr_data.get("cipher_text")
+
+        usrname = app_creds[0]
+        creds_store[app_name] = [usrname, encr_new_passwd]
+
+        str_creds_store = json.dumps(creds_store)
+        encrypt_file(str_creds_store, master_password)
 
 
-
-if usr_opinion == 2:
-    usr_app = input("Dear user please the the app of which you want the password: ")
-    key = getpass("Please enter the key by which you encrypted the data: ")
-
-    cred_dict = decrypt_file(master_password)
-    encrp_passw = cred_dict.get(usr_app)[-1]
-    salt = encrp_passw[0:24]
-    nonce = encrp_passw[24:48]
-    tag = encrp_passw[48:72]
-    cipher_text = encrp_passw[72:]
-
-    encr_data_passw = {}
-
-    encr_data_passw["salt"] = salt
-    encr_data_passw["nonce"] = nonce
-    encr_data_passw["tag"] = tag
-    encr_data_passw["cipher_text"] = cipher_text
-
-    encrp_name = cred_dict.get(usr_app)[0]
-    salt = encrp_name[0:24]
-    nonce = encrp_name[24:48]
-    tag = encrp_name[48:72]
-    cipher_text = encrp_name[72:]
-
-    encr_data_name = {}
-
-    encr_data_name["salt"] = salt
-    encr_data_name["nonce"] = nonce
-    encr_data_name["tag"] = tag
-    encr_data_name["cipher_text"] = cipher_text
-
-    try:
-        userid = aes_256.decrypt(encr_data_name,key).decode('utf-8')
-        passwd = aes_256.decrypt(encr_data_passw,key).decode('utf-8')
-
-        print(f"Your creds are: {userid}/{passwd}")
-
-    except Exception:
-        print('Incorrect key!!! Please try again')
-        exit()
-    
-        
-if usr_opinion == 3:
-    app_name = input("Please enter the app name of the password you want to enter: ")
-    new_passw = input("Please enter the new password: ")
-    key = getpass("Please enter the key: ")
-
-    
-    cred_dict = decrypt_file(master_password)
-
-    try:
-        encrp_passw = cred_dict.get(app_name)[-1]
-    except Exception:
-        print("This app does not exist please add it or try again")
-        exit()
-
-    try:
-        prev_passw = cred_dict.get(app_name)[-1]
-        salt = prev_passw[0:24]
-        nonce = prev_passw[24:48]
-        tag = prev_passw[48:72]
-        cipher_text = prev_passw[72:]
-        prev_passw_dict = {}
-        prev_passw_dict["salt"] = salt
-        prev_passw_dict["nonce"] = nonce
-        prev_passw_dict["tag"] = tag
-        prev_passw_dict["cipher_text"] = cipher_text
-
-        aes_256.decrypt(prev_passw_dict,key)
-
-    except Exception:
-        print("Oops! Dear user the key you entered was wrong!")
-        exit()
-
-
-    encryp_passw = aes_256.encrypt(new_passw,key)
-    encr_passw = encryp_passw.get("salt") + encryp_passw.get("nonce") + encryp_passw.get("tag") + encryp_passw.get("cipher_text")
-
-    app_n = cred_dict.get(app_name)[0]
-    cred_dict[app_name] = [app_n,encr_passw]
-    str_upd_creds = json.dumps(cred_dict)
-    encrypt_file(str_upd_creds,master_password)
-
-
-
-
-if usr_opinion == 4:
+elif usr_choice == 4:
+    print("Thank you for using Password Manager 1.0. Visit again!!")
+    print("")
     exit()
 
+else:
+    print("Error: Invalid choice. Please try again")
+    print("")
+    exit()
 
 
 
