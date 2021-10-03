@@ -44,6 +44,7 @@ def decrypt_file(master_passw):
 master_password = ""
 usr_key = ""
 flg_file_empty = False
+creds_store = {}
 
 print("")
 print("=================================================================================================")
@@ -111,6 +112,8 @@ try:
     if master_password == "":
         master_password = getpass("Enter your master password: ")
 
+
+    print("Initialising creds_store...")
     creds_store = decrypt_file(master_password)
 
 except FileNotFoundError:
