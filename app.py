@@ -7,6 +7,8 @@ import aes_256
 import json
 from getpass import getpass
 import chk_password
+import time
+import os
 
 def encrypt_file(str_creds,master_passw):
     with open("data","w") as data:
@@ -39,6 +41,7 @@ def decrypt_file(master_passw):
 
     return secret_data
 
+new = False
 
 # Program logic starts here
 master_password = ""
@@ -46,6 +49,7 @@ usr_key = ""
 flg_file_empty = False
 creds_store = {}
 
+os.system("clear")
 print("")
 print("=================================================================================================")
 print("                               Welcome to Password Manager 1.0")
@@ -86,6 +90,7 @@ except Exception:
 
     usr_key = getpass("\tEncryption key: ")
     confirm_usr_key = getpass("\tEnter encryption key again: ")
+    new = True
 
     if usr_key == confirm_usr_key:
         if_pass_complx = chk_password.chk_complxty_password(usr_key)
@@ -124,144 +129,192 @@ except Exception:
     print("")
     exit()
 
-print("")
-print("=================================================================================================")
-print("                                      Application Menu")
-print("=================================================================================================")
-print("")
+flg = 0
+while True:
+    try:
+        with open("data") as d:
+            d.readline()
 
-print("Please select what you want to do")
-print("1) Add a credential")
-print("2) Get a credential")
-print("3) Update credentials")
-print("4) Exit")
+    except Exception:
+        if flg == 0:
+            time.sleep(8)
+            flg = 1
+    os.system("clear")
 
-usr_choice = int(input("1, 2, 3 or 4? : "))
+    print("")
+    print("=================================================================================================")
+    print("                                      Application Menu")
+    print("=================================================================================================")
+    print("")
 
-if usr_choice == 1:
-    
-    usr_key = getpass("Enter your encryption key: ")
+    print("Please select what you want to do")
+    print("1) Add a credential")
+    print("2) Get a credential")
+    print("3) Update credentials")
+    print("4) Exit")
 
-    print("Preparing to add a credential in the secret store")
-    app_name = input("Which app you need to add credentials for? Enter the name of the app: ")
-    usr_name = input("What is the username? ")
-    app_pass = input("What is the password for the username? ")
-    
-    passwd_encr_data = aes_256.encrypt(app_pass,usr_key)
-    encr_passwd = passwd_encr_data.get("salt") + passwd_encr_data.get("nonce") + passwd_encr_data.get("tag") + passwd_encr_data.get("cipher_text")
-    
-    usrname_encr_data = aes_256.encrypt(usr_name, usr_key)
-    encr_usrname = usrname_encr_data.get("salt") + usrname_encr_data.get("nonce") + usrname_encr_data.get("tag") + usrname_encr_data.get("cipher_text")
+    try:
+        usr_choice = int(input("Your choice: "))
+    except Exception:
+        print("Error: Invalid choice. Please try again")
+        time.sleep(2)
+        continue
         
-    creds_store[app_name] = [encr_usrname,encr_passwd]
-    str_creds_store = json.dumps(creds_store)
 
-    encrypt_file(str_creds_store,master_password)
-    flg_file_empty = False
+    if usr_choice == 1: 
+        user_key = getpass("Enter your encryption key: ")
+        if new == True:
+            if usr_key == user_key:
+                print("Key entered matches")
+            else:
+                print("The key is incorrect... Aborting.....")
+                exit()
 
+       
 
+        print("Preparing to add a credential in the secret store")
+        app_name = input("Which app you need to add credentials for? Enter the name of the app: ")
+        usr_name = input("What is the username? ")
+        app_pass = getpass(f"Enter the Password for '{usr_name}': ")
+        app_pass_retake = getpass("Enter password again: ")
 
-elif usr_choice == 2:
-    print("Retrieve credentials")
-    usr_app = input(f"Please enter the app name {[ key for key in creds_store.keys()]}: ")
-    key = getpass("Enter the encryption key: ")
-
-    app_creds = creds_store.get(usr_app)
-
-    if app_creds == None:
-        print(f"Error: No entry found for app by name '{usr_app}'!")
-    else:
-
-        encr_new_passwd = app_creds[1]
-
-        salt = encr_new_passwd[0:24]
-        nonce = encr_new_passwd[24:48]
-        tag = encr_new_passwd[48:72]
-        cipher_text = encr_new_passwd[72:]
-
-        passwd_encr_data = {}
-
-        passwd_encr_data["salt"] = salt
-        passwd_encr_data["nonce"] = nonce
-        passwd_encr_data["tag"] = tag
-        passwd_encr_data["cipher_text"] = cipher_text
-
-        encr_usrname = app_creds[0]
-        salt = encr_usrname[0:24]
-        nonce = encr_usrname[24:48]
-        tag = encr_usrname[48:72]
-        cipher_text = encr_usrname[72:]
-
-        usrname_encr_data = {}
-
-        usrname_encr_data["salt"] = salt
-        usrname_encr_data["nonce"] = nonce
-        usrname_encr_data["tag"] = tag
-        usrname_encr_data["cipher_text"] = cipher_text
-
-        try:
-            userid = aes_256.decrypt(usrname_encr_data,key).decode('utf-8')
-            passwd = aes_256.decrypt(passwd_encr_data,key).decode('utf-8')
-
-            print(f"Your creds for '{usr_app}' are: {userid}/{passwd}")
-
-        except Exception:
-            print('Error: Failed to decrpt data. Key provided seems to be incorrect. Please try again')
-            print("")
-            exit()
-    
-        
-elif usr_choice == 3:
-    print("Updating credentials")
-    app_name = input(f"Please enter the app name {creds_store.keys()}: ")
-    key = getpass("Enter the encryption key: ")
-    new_passw = input("Please enter the new password: ")
-
-    app_creds = creds_store.get(app_name)
-
-    if app_creds == None:
-        print(f"Error: No entry found for app by name '{app_name}'!")
-    else:
-
-        try:
-            prev_passw = app_creds[1]
-            salt = prev_passw[0:24]
-            nonce = prev_passw[24:48]
-            tag = prev_passw[48:72]
-            cipher_text = prev_passw[72:]
-            prev_passw_encr_data = {}
-            prev_passw_encr_data["salt"] = salt
-            prev_passw_encr_data["nonce"] = nonce
-            prev_passw_encr_data["tag"] = tag
-            prev_passw_encr_data["cipher_text"] = cipher_text
-
-            aes_256.decrypt(prev_passw_encr_data,key)
-
-        except Exception:
-            print("Error: Incorrect key!")
-            exit()
+        if app_pass != app_pass_retake:
+            print("Passwords do not match! Please try again.")
+            continue
 
 
-        new_passwd_encr_data = aes_256.encrypt(new_passw,key)
-        encr_new_passwd = new_passwd_encr_data.get("salt") + new_passwd_encr_data.get("nonce") + new_passwd_encr_data.get("tag") + new_passwd_encr_data.get("cipher_text")
+        #if bool(creds_store) != False:
+        #    latest_add = creds_store.keys()[-1]
+        #    app_creds = creds_store.get(latest_add)
+        #    passw = app_creds[1]
+        #    salt = passw[0:24]
+        #    nonce = passw[24:48]
+        #    tag = passw[48:72]
+        #    cipher_text = passw[72:]
+        #    passw_encr_data = {}
+        #    passw_encr_data["salt"] = salt
+        #    passw_encr_data["nonce"] = nonce
+        #    passw_encr_data["tag"] = tag
+        #    passw_encr_data["cipher_text"] = cipher_text
+#
+        #    try:
+        #        aes_256.decrypt(passw_encr_data,user_key)
+#
+        #    except Exception:
+        #        print("The key you entered was different. The key should be same to encrypt all the data.")
+        #        exit()
 
-        usrname = app_creds[0]
-        creds_store[app_name] = [usrname, encr_new_passwd]
+        passwd_encr_data = aes_256.encrypt(app_pass,user_key)
+        encr_passwd = passwd_encr_data.get("salt") + passwd_encr_data.get("nonce") + passwd_encr_data.get("tag") + passwd_encr_data.get("cipher_text")
 
+        usrname_encr_data = aes_256.encrypt(usr_name, user_key)
+        encr_usrname = usrname_encr_data.get("salt") + usrname_encr_data.get("nonce") + usrname_encr_data.get("tag") + usrname_encr_data.get("cipher_text")
+
+        creds_store[app_name] = [encr_usrname,encr_passwd]
         str_creds_store = json.dumps(creds_store)
-        encrypt_file(str_creds_store, master_password)
 
-
-elif usr_choice == 4:
-    print("Thank you for using Password Manager 1.0. Visit again!!")
-    print("")
-    exit()
-
-else:
-    print("Error: Invalid choice. Please try again")
-    print("")
-    exit()
+        encrypt_file(str_creds_store,master_password)
+        flg_file_empty = False
 
 
 
+    elif usr_choice == 2:
+        print("Retrieve credentials")
+        usr_app = input(f"Please enter the app name {[ key for key in creds_store.keys()]}: ")
+        key = getpass("Enter the encryption key: ")
 
+        app_creds = creds_store.get(usr_app)
+
+        if app_creds == None:
+            print(f"Error: No entry found for app by name '{usr_app}'!")
+        else:
+
+            encr_new_passwd = app_creds[1]
+
+            salt = encr_new_passwd[0:24]
+            nonce = encr_new_passwd[24:48]
+            tag = encr_new_passwd[48:72]
+            cipher_text = encr_new_passwd[72:]
+
+            passwd_encr_data = {}
+
+            passwd_encr_data["salt"] = salt
+            passwd_encr_data["nonce"] = nonce
+            passwd_encr_data["tag"] = tag
+            passwd_encr_data["cipher_text"] = cipher_text
+
+            encr_usrname = app_creds[0]
+            salt = encr_usrname[0:24]
+            nonce = encr_usrname[24:48]
+            tag = encr_usrname[48:72]
+            cipher_text = encr_usrname[72:]
+
+            usrname_encr_data = {}
+
+            usrname_encr_data["salt"] = salt
+            usrname_encr_data["nonce"] = nonce
+            usrname_encr_data["tag"] = tag
+            usrname_encr_data["cipher_text"] = cipher_text
+
+            try:
+                userid = aes_256.decrypt(usrname_encr_data,key).decode('utf-8')
+                passwd = aes_256.decrypt(passwd_encr_data,key).decode('utf-8')
+
+                print(f"Your creds for '{usr_app}' are: {userid}/{passwd}")
+
+            except Exception:
+                print('Error: Failed to decrpt data. Key provided seems to be incorrect. Please try again')
+                print("")
+                exit()
+
+
+    elif usr_choice == 3:
+        print("Updating credentials")
+        app_name = input(f"Please enter the app name {creds_store.keys()}: ")
+        key = getpass("Enter the encryption key: ")
+        new_passw = input("Please enter the new password: ")
+
+        app_creds = creds_store.get(app_name)
+
+        if app_creds == None:
+            print(f"Error: No entry found for app by name '{app_name}'!")
+        else:
+
+            try:
+                prev_passw = app_creds[1]
+                salt = prev_passw[0:24]
+                nonce = prev_passw[24:48]
+                tag = prev_passw[48:72]
+                cipher_text = prev_passw[72:]
+                prev_passw_encr_data = {}
+                prev_passw_encr_data["salt"] = salt
+                prev_passw_encr_data["nonce"] = nonce
+                prev_passw_encr_data["tag"] = tag
+                prev_passw_encr_data["cipher_text"] = cipher_text
+
+                aes_256.decrypt(prev_passw_encr_data,key)
+
+            except Exception:
+                print("Error: Incorrect key!")
+                exit()
+
+
+            new_passwd_encr_data = aes_256.encrypt(new_passw,key)
+            encr_new_passwd = new_passwd_encr_data.get("salt") + new_passwd_encr_data.get("nonce") + new_passwd_encr_data.get("tag") + new_passwd_encr_data.get("cipher_text")
+
+            usrname = app_creds[0]
+            creds_store[app_name] = [usrname, encr_new_passwd]
+
+            str_creds_store = json.dumps(creds_store)
+            encrypt_file(str_creds_store, master_password)
+
+
+    elif usr_choice == 4:
+        print("Thank you for using Password Manager 1.0. Visit again!!")
+        print("")
+        exit()
+
+    else:
+        print("Error: Invalid choice. Please try again")
+        time.sleep(2)
+        continue
