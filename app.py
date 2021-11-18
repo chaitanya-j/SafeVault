@@ -111,6 +111,7 @@ except Exception:
     print(" - If either of these secrets are lost, your data will remain encrypted forever")
     print(" - The program does not offer any recovery option for these secrets")
     print("")
+    time.sleep(7)
 
 
 try:
@@ -170,7 +171,29 @@ while True:
                 print("The key is incorrect... Aborting.....")
                 exit()
 
-       
+        if bool(creds_store) != False:
+            latest_add = 0
+            for i in creds_store.keys():
+                latest_add = i
+                break
+            app_creds = creds_store.get(latest_add)
+            passw = app_creds[1]
+            salt = passw[0:24]
+            nonce = passw[24:48]
+            tag = passw[48:72]
+            cipher_text = passw[72:]
+            passw_encr_data = {}
+            passw_encr_data["salt"] = salt
+            passw_encr_data["nonce"] = nonce
+            passw_encr_data["tag"] = tag
+            passw_encr_data["cipher_text"] = cipher_text
+
+            try:
+                aes_256.decrypt(passw_encr_data,user_key)
+
+            except Exception:
+                print("The key you entered was different. The key should be same to encrypt all the data.")
+                exit()
 
         print("Preparing to add a credential in the secret store")
         app_name = input("Which app you need to add credentials for? Enter the name of the app: ")
@@ -182,27 +205,6 @@ while True:
             print("Passwords do not match! Please try again.")
             continue
 
-
-        #if bool(creds_store) != False:
-        #    latest_add = creds_store.keys()[-1]
-        #    app_creds = creds_store.get(latest_add)
-        #    passw = app_creds[1]
-        #    salt = passw[0:24]
-        #    nonce = passw[24:48]
-        #    tag = passw[48:72]
-        #    cipher_text = passw[72:]
-        #    passw_encr_data = {}
-        #    passw_encr_data["salt"] = salt
-        #    passw_encr_data["nonce"] = nonce
-        #    passw_encr_data["tag"] = tag
-        #    passw_encr_data["cipher_text"] = cipher_text
-#
-        #    try:
-        #        aes_256.decrypt(passw_encr_data,user_key)
-#
-        #    except Exception:
-        #        print("The key you entered was different. The key should be same to encrypt all the data.")
-        #        exit()
 
         passwd_encr_data = aes_256.encrypt(app_pass,user_key)
         encr_passwd = passwd_encr_data.get("salt") + passwd_encr_data.get("nonce") + passwd_encr_data.get("tag") + passwd_encr_data.get("cipher_text")
@@ -272,7 +274,7 @@ while True:
         print("Updating credentials")
         app_name = input(f"Please enter the app name {creds_store.keys()}: ")
         key = getpass("Enter the encryption key: ")
-        new_passw = input("Please enter the new password: ")
+        new_passw = getpass("Please enter the new password: ")
 
         app_creds = creds_store.get(app_name)
 
