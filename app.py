@@ -65,6 +65,15 @@ except Exception:
     print("Initiating Program Setup...")
     
     print("")
+    print("You are about to set the master password and the encryption key")
+    print("Here are some instructions: ")
+    print("The password must have atleast:")
+    print("1) 1 special character")
+    print("2) 1 integer")
+    print("3) 1 small alphabet")
+    print("4) 1 capital alphabet")
+    print("5) Password must have atleast 8 character") 
+    print(" ")
     print("Step-1: Set your master password")
     print("")
     master_password = getpass("\tMaster password: ")
@@ -111,7 +120,8 @@ except Exception:
     print(" - If either of these secrets are lost, your data will remain encrypted forever")
     print(" - The program does not offer any recovery option for these secrets")
     print("")
-    time.sleep(7)
+    
+    enter = getpass("Hit enter to continue :")
 
 
 try:
@@ -229,6 +239,8 @@ while True:
 
         if app_creds == None:
             print(f"Error: No entry found for app by name '{usr_app}'!")
+            print(" ")
+            enter = getpass("Hit enter to continue :")
         else:
 
             encr_new_passwd = app_creds[1]
@@ -263,7 +275,8 @@ while True:
                 passwd = aes_256.decrypt(passwd_encr_data,key).decode('utf-8')
 
                 print(f"Your creds for '{usr_app}' are: {userid}/{passwd}")
-
+                print(" ")
+                enter = getpass("Hit enter to continue :")
             except Exception:
                 print('Error: Failed to decrpt data. Key provided seems to be incorrect. Please try again')
                 print("")
@@ -278,8 +291,12 @@ while True:
 
         app_creds = creds_store.get(app_name)
 
-        if app_creds == None:
-            print(f"Error: No entry found for app by name '{app_name}'!")
+        if len(creds_store.keys()) == 0:
+            print(f"Error: No entry found for app by name '{app_name}'! Please try again!")
+            print(" ")
+            enter = getpass("Hit enter to continue :")
+            continue
+            
         else:
 
             try:
