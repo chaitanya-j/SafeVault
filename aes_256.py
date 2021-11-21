@@ -1,3 +1,6 @@
+### pip3 or pip or pipenv install pycryptodomex ###
+
+
 from base64 import b64encode, b64decode
 import hashlib
 from Cryptodome.Cipher import AES

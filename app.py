@@ -101,6 +101,9 @@ except Exception:
     confirm_usr_key = getpass("\tEnter encryption key again: ")
     new = True
 
+
+
+
     if usr_key == confirm_usr_key:
         if_pass_complx = chk_password.chk_complxty_password(usr_key)
         if if_pass_complx == False:
@@ -172,6 +175,7 @@ while True:
         continue
         
 
+
     if usr_choice == 1: 
         user_key = getpass("Enter your encryption key: ")
         if new == True:
@@ -230,6 +234,8 @@ while True:
 
 
 
+
+
     elif usr_choice == 2:
         print("Retrieve credentials")
         usr_app = input(f"Please enter the app name {[ key for key in creds_store.keys()]}: ")
@@ -281,6 +287,9 @@ while True:
                 print('Error: Failed to decrpt data. Key provided seems to be incorrect. Please try again')
                 print("")
                 exit()
+
+
+
 
 
     elif usr_choice == 3:
